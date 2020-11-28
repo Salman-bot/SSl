@@ -3,16 +3,14 @@ import ssl
 
 if __name__ == '__main__':
 
-    HOST = '127.0.0.1'
-    PORT = 1234
+    HOST = '10.157.9.133'
+    PORT = 4433
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setblocking(1);
     sock.connect((HOST, PORT))
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-    context.verify_mode = ssl.CERT_REQUIRED
-    context.load_verify_locations('server.pem')
     context.load_cert_chain(certfile="client.pem", keyfile="client.key")
 
     if ssl.HAS_SNI:
@@ -25,9 +23,12 @@ if __name__ == '__main__':
 
     # verify server
     #  if not cert or ('commonName', 'test') not in cert['subject'][3]: raise Exception("ERROR")
-
+    print("Sending")
     secure_sock.write(b'hello')
-    d = secure_sock.read(1024)
-    print(d)
+    print("Receiving")
+
+    data = secure_sock.read(1024)
+
+    print(bytearray(data))
     secure_sock.close()
     sock.close()
