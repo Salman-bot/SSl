@@ -138,20 +138,22 @@ static void Flash(void const * argument)
 	  MY_FLASH_SetSectorAddrs(11, 0x080E0000);
 
 
-	  uint8_t rData[5];
-	  uint8_t wData[5]= {0x66, 0x66,0x66,0x66, 0x66};
-	  static unsigned char *HashBuffer;
+	  static unsigned char rData[2];
+	  static unsigned char wData[]= {0x55,0x55};
+	  const unsigned char *HashBuffer;
+	  static size_t len;
 	  //write wData to the first index of sector 11 (write 5 bytes)
-	  MY_FLASH_WriteN(0,wData,5,DATA_TYPE_8);
+	  MY_FLASH_WriteN(0,wData,2,DATA_TYPE_8);
+	  MY_FLASH_ReadN(0,rData,2,DATA_TYPE_8);
+
+	  HashBuffer = rData;
+
+	  len = strlen((char*)HashBuffer);
 
 	  while (1) {
 		  BSP_LED_Toggle(LED4);
 
-		  //read to rData from the first index of sector 11 to the fifth
-		    MY_FLASH_ReadN(0,rData,5,DATA_TYPE_8);
-		    HashBuffer = (unsigned char *) rData;
-
-		    mbedtls_sha256(HashBuffer, sizeof(HashBuffer), sha256_out, 0);
+		 mbedtls_sha256(HashBuffer, len, sha256_out, 0);
 
 		    osDelay(200);
 	  }
