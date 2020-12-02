@@ -136,15 +136,14 @@ static void Flash(void const * argument)
 {
 	  //define 0x080E0000 as sector 11
 	  MY_FLASH_SetSectorAddrs(11, 0x080E0000);
-
-
-	  static unsigned char rData[2];
-	  static unsigned char wData[]= {0x55,0x55};
+	  static unsigned char rData[500];
+	  static unsigned char wData[6]= {0x55,0x55,0x55,0x55,0x55,0x55};
 	  const unsigned char *HashBuffer;
 	  static size_t len;
-	  //write wData to the first index of sector 11 (write 5 bytes)
-	  MY_FLASH_WriteN(0,wData,2,DATA_TYPE_8);
-	  MY_FLASH_ReadN(0,rData,2,DATA_TYPE_8);
+	  static size_t i;
+	  MY_FLASH_WriteN(0,wData,6,DATA_TYPE_8);
+	  MY_FLASH_ReadN(0,rData,500,DATA_TYPE_8);
+
 
 	  HashBuffer = rData;
 
