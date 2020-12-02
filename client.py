@@ -1,3 +1,4 @@
+import binascii
 import socket
 import ssl
 
@@ -27,8 +28,17 @@ if __name__ == '__main__':
     secure_sock.write(b'hello')
     print("Receiving")
 
-    data = secure_sock.read(1024)
+    data = secure_sock.read(32)
 
-    print(bytearray(data))
+    f = open("file.dat", "rb")
+    stored_hash = f.readline()
+    f.close()
+
+    if stored_hash == data:
+        print("comparison successful")
+    else:
+        print("comparison Failed")
+    print(stored_hash)
+    print(data)
     secure_sock.close()
     sock.close()
