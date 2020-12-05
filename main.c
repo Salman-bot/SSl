@@ -78,7 +78,9 @@ int main()
   BSP_LED_Init(LED3);
   BSP_LED_Init(LED4);
   RNG_Init();
-
+  //size to read from flash and hash in bytes
+#define read_size 102400 //(1MB)
+  //102400
 #ifdef USE_LCD
 
   /* Initialize the LCD */
@@ -134,27 +136,28 @@ int main()
   */
 static void Flash(void const * argument)
 {
-	  //define 0x080E0000 as sector 11
-	  MY_FLASH_SetSectorAddrs(11, 0x080E0000);
-	  static unsigned char rData[500];
-	  static unsigned char wData[6]= {0x55,0x55,0x55,0x55,0x55,0x55};
+	  //define 0x08000000 as sector 0
+	  MY_FLASH_SetSectorAddrs(0, 0x08000000);
+	  static unsigned char rData[read_size];
+	  static unsigned char wData[6]= {0x55,0x55,0x85,0x55,0x45,0x55};
 	  const unsigned char *HashBuffer;
-	  static size_t len;
-	  static size_t i;
-	  MY_FLASH_WriteN(0,wData,6,DATA_TYPE_8);
-	  MY_FLASH_ReadN(0,rData,500,DATA_TYPE_8);
+	  //static size_t len;
 
 
-	  HashBuffer = rData;
+	  //MY_FLASH_WriteN(50,wData,6,DATA_TYPE_8);
 
-	  len = strlen((char*)HashBuffer);
+
+
+
+	 // HashBuffer = rData;
+	 //len = strlen((char*)HashBuffer);
 
 	  while (1) {
 		  BSP_LED_Toggle(LED4);
-
-		 mbedtls_sha256(HashBuffer, len, sha256_out, 0);
-
-		    osDelay(200);
+		 MY_FLASH_ReadN(0,rData,read_size,DATA_TYPE_8);
+		 HashBuffer = rData;
+		 mbedtls_sha256(HashBuffer, read_size, sha256_out, 0);
+		    osDelay(5000);
 	  }
 
 }
