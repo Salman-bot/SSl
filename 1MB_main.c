@@ -166,7 +166,6 @@ static void Flash(void const * argument)
 
 
 		 mbedtls_sha256(HashBuffer, read_size, sha256_out, 0);
-		 next_status =1;
 		    index_=index_+read_size;
 		    i = i+1;
 		  BSP_LED_Toggle(LED2);
