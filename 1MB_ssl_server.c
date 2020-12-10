@@ -1,4 +1,4 @@
-/**
+//**
   *
   *  Portions COPYRIGHT 2016 STMicroelectronics
   *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
@@ -55,7 +55,7 @@
 #define mbedtls_fprintf    fprintf
 #define mbedtls_printf     printf
 #endif
-
+#define read_size 128 //(Bytes) //128
 #include <stdlib.h>
 #include <string.h>
 
@@ -67,7 +67,8 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
-
+#include "mbedtls/sha256.h"
+#include "MY_FLASH.h"
 #if defined(MBEDTLS_SSL_CACHE_C)
 #include "mbedtls/ssl_cache.h"
 #endif
@@ -83,7 +84,7 @@ mbedtls_ssl_context ssl;
 mbedtls_ssl_config conf;
 mbedtls_x509_crt srvcert;
 mbedtls_pk_context pkey;
-
+//static unsigned char password_sha[] ={0xcf,0x7b,0x02,0x03,0xd8,0x1d,0x7c,0xf4,0x52,0x54,0xb7,0x06,0x4c,0x8a,0x7f,0x75,0xc8,0x08,0x1e,0x06,0xf0,0x96,0xb4,0x14,0x1c,0xf6,0xd5,0x48,0xc3,0x29,0x6a,0x47};
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_context cache;
 #endif
@@ -100,6 +101,12 @@ void LED_Thread(void const *argument)
 void SSL_Server(void const *argument)
 {
   int ret, len;
+  int index_ = 0;
+  const unsigned char *HashBuffer_1;
+  MY_FLASH_SetSectorAddrs(0, 0x08000000);
+  static unsigned char rData[read_size];
+  static unsigned char wData[6]= {0x55,0x55,0x85,0x55,0x45,0x55};
+
   UNUSED(argument);
  
 #ifdef MBEDTLS_MEMORY_BUFFER_ALLOC_C
@@ -265,14 +272,83 @@ reset:
   mbedtls_printf( " ok\n" );
 
   /*
-   * 7. Enabel connected*/
- 
+   * 7. Read Password*/
+  mbedtls_printf( "  < Read from client:" );
+   static unsigned char PA[7];
+   const unsigned char *HashBuffer;
+   unsigned char sha256_password[32];
+	uint8_t result;
+	char password_sha[32] ={0xcf,0x7b,0x02,0x03,0xd8,0x1d,0x7c,0xf4,0x52,0x54,0xb7,0x06,0x4c,0x8a,0x7f,0x75,0xc8,0x08,0x1e,0x06,0xf0,0x96,0xb4,0x14,0x1c,0xf6,0xd5,0x48,0xc3,0x29,0x6a,0x47};
+   do
+   {
+     len = sizeof( buf ) - 1;
+     memset( buf, 0, sizeof( buf ) );
+     ret = mbedtls_ssl_read( &ssl, buf, len );
+     memcpy(PA, (char *)buf, 7);
+     HashBuffer = PA;
+     mbedtls_sha256(HashBuffer, 7, sha256_password, 0);
 
-  /*
-   * 8. Write the 200 Response
-   */
+     //result = strcmp((char *)sha256_password,password_sha);
+     if (memcmp(sha256_password, password_sha, sizeof(password_sha) / sizeof(password_sha[0])) != 0)
+    	 BSP_LED_Toggle(LED2);
+     else
+    	 BSP_LED_Toggle(LED3);
 
+
+     if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
+ 	{
+       continue;
+     }
+     if( ret <= 0 )
+     {
+       switch( ret )
+       {
+         case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
+           mbedtls_printf( " connection was closed gracefully\n" );
+           break;
+
+         case MBEDTLS_ERR_NET_CONN_RESET:
+           mbedtls_printf( " connection was reset by peer\n" );
+           break;
+
+         default:
+           mbedtls_printf( " mbedtls_ssl_read returned -0x%x\n", -ret );
+           break;
+       }
+
+       break;
+     }
+
+     len = ret;
+     mbedtls_printf( " %d bytes read\n%s", len, (char *) buf );
+
+     if( ret > 0 )
+ 	{
+       break;
+ 	}
+   } while(1);
+
+
+  /* Reading and hashing */
+
+	  BSP_LED_Toggle(LED4);
+	  MY_FLASH_ReadN(index_,rData,read_size,DATA_TYPE_8);
+	  HashBuffer_1 = rData;
+	 mbedtls_sha256(HashBuffer_1, read_size, sha256_out, 0);
+	 index_=index_+read_size;
+	 //Stop at 1MB
+	 if(index_ == 0x111ED0){
+
+		 BSP_LED_Toggle(LED3);
+
+		 index_ =0;
+	 }
+	    osDelay(500);
+
+	    /* End */
   mbedtls_printf( "  > Write to client:" );
+
+  /* Write to client */
 len = sprintf( (char *) buf, (char *) sha256_out, mbedtls_ssl_get_ciphersuite( &ssl ) );
   mbedtls_printf((char *)buf);
 while( ( ret = mbedtls_ssl_write( &ssl, buf, len ) ) <= 0 )
@@ -290,9 +366,8 @@ while( ( ret = mbedtls_ssl_write( &ssl, buf, len ) ) <= 0 )
 }
 
   len = ret;
-  next_status =0;
 mbedtls_printf( " %d bytes written\n%s", len, (char *) buf );
-
+//mbedtls_printf( " %d Delay\n%s", HAL_GetTick());
 mbedtls_printf( "  . Closing the connection..." );
 
 
@@ -325,3 +400,4 @@ exit:
   mbedtls_entropy_free( &entropy );
   osThreadTerminate(LedThreadId);
 }
+
