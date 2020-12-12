@@ -1,7 +1,7 @@
+# This program will write incoming data to file.dat
 import binascii
 import socket
 import ssl
-
 HOST = '10.157.9.133'
 PORT = 4433
 
