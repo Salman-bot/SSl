@@ -11,7 +11,7 @@ while True:
         while (stored_hash :=f.read(32)) :
             if not stored_hash:
                 f.close()
-                print("SOSOSO")
+                print("Error")
             else :
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.setblocking(1);
