@@ -1,4 +1,4 @@
-//**
+/**
   *
   *  Portions COPYRIGHT 2016 STMicroelectronics
   *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
@@ -55,7 +55,7 @@
 #define mbedtls_fprintf    fprintf
 #define mbedtls_printf     printf
 #endif
-#define read_size 128 //(Bytes) //128
+#define read_size 8192 //(Bytes) //1024
 #include <stdlib.h>
 #include <string.h>
 
@@ -76,6 +76,7 @@
 
 static mbedtls_net_context listen_fd, client_fd;
 static uint8_t buf[1024];
+static uint8_t buf_1[32];
 static const uint8_t *pers = (uint8_t *)("ssl_server");
 static osThreadId LedThreadId;
 mbedtls_entropy_context entropy;
@@ -136,7 +137,7 @@ void SSL_Server(void const *argument)
   /*
    * 1. Load the certificates and private RSA key
    */
-  mbedtls_printf( "\n  . Loading the server cert. and key..." );
+ // mbedtls_printf( "\n  . Loading the server cert. and key..." );
 
 
   /*
@@ -165,12 +166,12 @@ void SSL_Server(void const *argument)
     goto exit;
   }
 
-  mbedtls_printf( " ok\n" );
+  //mbedtls_printf( " ok\n" );
 
   /*
    * 2. Setup the listening TCP socket
    */
-  mbedtls_printf( "  . Bind on https://localhost:4433/ ..." );
+  //mbedtls_printf( "  . Bind on https://localhost:4433/ ..." );
 
   if((ret = mbedtls_net_bind(&listen_fd, NULL, "4433", MBEDTLS_NET_PROTO_TCP )) != 0)
   {
@@ -178,12 +179,12 @@ void SSL_Server(void const *argument)
     goto exit;
   }
 
-  mbedtls_printf( " ok\n" );
+  //mbedtls_printf( " ok\n" );
 
   /*
    * 3. Seed the RNG
    */
-  mbedtls_printf( "  . Seeding the random number generator..." );
+  //mbedtls_printf( "  . Seeding the random number generator..." );
 
   if((ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen( (char *)pers))) != 0)
   {
@@ -191,12 +192,12 @@ void SSL_Server(void const *argument)
     goto exit;
   }
 
-  mbedtls_printf( " ok\n" );
+  //mbedtls_printf( " ok\n" );
 
   /*
    * 4. Setup stuff
    */
-  mbedtls_printf( "  . Setting up the SSL data...." );
+ // mbedtls_printf( "  . Setting up the SSL data...." );
 
   if( ( ret = mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_SERVER, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT)) != 0)
   {
@@ -223,7 +224,7 @@ void SSL_Server(void const *argument)
     goto exit;
   }
 
-  mbedtls_printf( " ok\n" );
+  //mbedtls_printf( " ok\n" );
 
 reset:
 #ifdef MBEDTLS_ERROR_C
@@ -337,21 +338,19 @@ reset:
 	 mbedtls_sha256(HashBuffer_1, read_size, sha256_out, 0);
 	 index_=index_+read_size;
 	 //Stop at 1MB
-	 if(index_ == 0x111ED0){
 
+	 if(index_ >= 0xFA360  ){
 		 BSP_LED_Toggle(LED3);
-
 		 index_ =0;
 	 }
-	    osDelay(500);
 
 	    /* End */
   mbedtls_printf( "  > Write to client:" );
 
   /* Write to client */
 len = sprintf( (char *) buf, (char *) sha256_out, mbedtls_ssl_get_ciphersuite( &ssl ) );
-  mbedtls_printf((char *)buf);
-while( ( ret = mbedtls_ssl_write( &ssl, buf, len ) ) <= 0 )
+//  mbedtls_printf((char *)buf);
+while( ( ret = mbedtls_ssl_write( &ssl, buf, 32 ) ) <= 0 )
 {
   if( ret == MBEDTLS_ERR_NET_CONN_RESET )
   {
@@ -366,9 +365,9 @@ while( ( ret = mbedtls_ssl_write( &ssl, buf, len ) ) <= 0 )
 }
 
   len = ret;
-mbedtls_printf( " %d bytes written\n%s", len, (char *) buf );
+//mbedtls_printf( " %d bytes written\n%s", len, (char *) buf );
 //mbedtls_printf( " %d Delay\n%s", HAL_GetTick());
-mbedtls_printf( "  . Closing the connection..." );
+//mbedtls_printf( "  . Closing the connection..." );
 
 
   while( ( ret = mbedtls_ssl_close_notify( &ssl ) ) < 0 )
@@ -380,8 +379,8 @@ mbedtls_printf( "  . Closing the connection..." );
     }
   }
 
-  mbedtls_printf( " ok\n" );
-  osDelay(1000);
+  //mbedtls_printf( " ok\n" );
+  osDelay(250);
   ret = 0;
   goto reset;
 
@@ -400,4 +399,3 @@ exit:
   mbedtls_entropy_free( &entropy );
   osThreadTerminate(LedThreadId);
 }
-
