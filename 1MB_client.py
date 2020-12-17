@@ -7,11 +7,11 @@ from time import sleep
 HOST = '10.157.9.133'
 PORT = 4433
 while True:
-    with open("file.dat", "rb") as f:
+    with open("file16384.dat", "rb") as f:
         while (stored_hash :=f.read(32)) :
             if not stored_hash:
                 f.close()
-                print("Error")
+                print("SOSOSO")
             else :
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.setblocking(1);
