@@ -55,7 +55,7 @@
 #define mbedtls_fprintf    fprintf
 #define mbedtls_printf     printf
 #endif
-#define read_size 8192 //(Bytes) //1024
+#define read_size 16384 //(Bytes) //1024
 #include <stdlib.h>
 #include <string.h>
 
@@ -73,7 +73,7 @@
 #include "mbedtls/ssl_cache.h"
 #endif
 
-
+#define Protection 1
 static mbedtls_net_context listen_fd, client_fd;
 static uint8_t buf[1024];
 static uint8_t buf_1[32];
@@ -101,6 +101,7 @@ void LED_Thread(void const *argument)
 
 void SSL_Server(void const *argument)
 {
+  mbedtls_printf( "  Startup Time =%d\n", (int)HAL_GetTick());
   int ret, len;
   int index_ = 0;
   const unsigned char *HashBuffer_1;
@@ -243,7 +244,7 @@ reset:
   /*
    * 5. Wait until a client connects
    */
-  mbedtls_printf( "  . Waiting for a remote connection ...\n" );
+ // mbedtls_printf( "  . Waiting for a remote connection ...\n" );
 
   if((ret = mbedtls_net_accept(&listen_fd, &client_fd, NULL, 0, NULL)) != 0)
   {
@@ -253,13 +254,13 @@ reset:
 
   mbedtls_ssl_set_bio( &ssl, &client_fd, mbedtls_net_send, mbedtls_net_recv, NULL );
 
-  mbedtls_printf( "  => connection ok\n" );
+ // mbedtls_printf( "  => connection ok\n" );
 
 
   /*
    * 6. Handshake
    */
-  mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
+  //mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
 
   while( ( ret = mbedtls_ssl_handshake( &ssl ) ) != 0 )
   {
@@ -270,11 +271,11 @@ reset:
     }
   }
 
-  mbedtls_printf( " ok\n" );
+  //mbedtls_printf( " ok\n" );
 
   /*
    * 7. Read Password*/
-  mbedtls_printf( "  < Read from client:" );
+  //mbedtls_printf( "  < Read from client:" );
    static unsigned char PA[7];
    const unsigned char *HashBuffer;
    unsigned char sha256_password[32];
@@ -290,11 +291,12 @@ reset:
      mbedtls_sha256(HashBuffer, 7, sha256_password, 0);
 
      //result = strcmp((char *)sha256_password,password_sha);
-     if (memcmp(sha256_password, password_sha, sizeof(password_sha) / sizeof(password_sha[0])) != 0)
-    	 BSP_LED_Toggle(LED2);
-     else
-    	 BSP_LED_Toggle(LED3);
-
+     if (memcmp(sha256_password, password_sha, sizeof(password_sha) / sizeof(password_sha[0])) != 0){
+    	//Do something if password incorrect
+     }
+     else{
+    	 //Do something if password is correct
+     }
 
      if( ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE )
  	{
@@ -321,7 +323,7 @@ reset:
      }
 
      len = ret;
-     mbedtls_printf( " %d bytes read\n%s", len, (char *) buf );
+     //mbedtls_printf( " %d bytes read\n%s", len, (char *) buf );
 
      if( ret > 0 )
  	{
@@ -329,25 +331,29 @@ reset:
  	}
    } while(1);
 
+#if (Protection == 1)
 
-  /* Reading and hashing */
+//Measuring Hashing a Block [Start]
+   mbedtls_printf( "  Delay Before =%d\n", (int)HAL_GetTick());
 
-	  BSP_LED_Toggle(LED4);
+  /* Reading and Hashing */
+
 	  MY_FLASH_ReadN(index_,rData,read_size,DATA_TYPE_8);
 	  HashBuffer_1 = rData;
 	 mbedtls_sha256(HashBuffer_1, read_size, sha256_out, 0);
 	 index_=index_+read_size;
-	 //Stop at 1MB
 
 	 if(index_ >= 0xFA360  ){
-		 BSP_LED_Toggle(LED3);
+		 //BSP_LED_Toggle(LED3);
 		 index_ =0;
 	 }
+	 //Measuring Hashing a Block [End]
+ mbedtls_printf( " Delay After =%d\n", (int)HAL_GetTick());
 
 	    /* End */
-  mbedtls_printf( "  > Write to client:" );
+  //mbedtls_printf( "  > Write to client:" );
 
-  /* Write to client */
+  /* Write to client The Hashed block*/
 len = sprintf( (char *) buf, (char *) sha256_out, mbedtls_ssl_get_ciphersuite( &ssl ) );
 //  mbedtls_printf((char *)buf);
 while( ( ret = mbedtls_ssl_write( &ssl, buf, 32 ) ) <= 0 )
@@ -378,10 +384,11 @@ while( ( ret = mbedtls_ssl_write( &ssl, buf, 32 ) ) <= 0 )
       goto reset;
     }
   }
-
+#endif
   //mbedtls_printf( " ok\n" );
-  osDelay(250);
+  osDelay(500);
   ret = 0;
+  mbedtls_printf( "  End Time =%d\n", (int)HAL_GetTick());
   goto reset;
 
 exit:
