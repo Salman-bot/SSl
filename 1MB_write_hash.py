@@ -1,7 +1,7 @@
-# This program will write incoming data to file.dat
 import binascii
 import socket
 import ssl
+
 HOST = '10.157.9.133'
 PORT = 4433
 
@@ -23,8 +23,8 @@ while True:
 
     # verify server
     #  if not cert or ('commonName', 'test') not in cert['subject'][3]: raise Exception("ERROR")
-    secure_sock.write(b'hello')
-    f = open("file.dat", "ab+")
+    secure_sock.write(b'a2bc886')
+    f = open("file16384.dat", "ab+")
     data = secure_sock.read(32)
     print(len(data))
     f.write(bytes(data))
