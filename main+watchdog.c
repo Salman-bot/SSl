@@ -61,6 +61,7 @@ static void MainThread(void const * argument);
 static void Watchdog(void const * argument);
 //static void Flash(void const * argument);
 unsigned char sha256_out[32];
+int status =0;
 RNG_HandleTypeDef RngHandle;
 static WWDG_HandleTypeDef   WwdgHandle;
 int main()
@@ -284,12 +285,14 @@ void Watchdog(void const *argument)
 
 	    /* Refresh WWDG: update counter value to 127, the refresh window is:
 	 between 34 ms (~728 * (127-80)) and 46 ms (~728 * 64) */
-
+if (status == 0) {
 	    if (HAL_WWDG_Refresh(&WwdgHandle) != HAL_OK)
 	    {
 	      Error_Handler();
-	    }
+	    	}
+		}
 	  }
+
 }
 
 static void RNG_Init(void)
